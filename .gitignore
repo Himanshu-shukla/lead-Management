@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.env
+.DS_Store
+uploads/
+# Create the file
+touch .gitignore
+
+# Add the folders/files to ignore
+echo "node_modules/" >> .gitignore
+echo "dist/" >> .gitignore
+echo ".env" >> .gitignore
+echo ".DS_Store" >> .gitignore
+echo "uploads/" >> .gitignore
+
+# Tell Git to stop tracking files that are already there but should be ignored
+git rm -r --cached . || true
+
+# Save the changes
+git add .
+git commit -m "Clean up project: Add gitignore and remove untracked files"

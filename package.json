@@ -1,0 +1,58 @@
+{
+  "name": "lead-manager-backend",
+  "version": "1.0.0",
+  "description": "Lead Management System Backend API with MongoDB",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon --config nodemon.json",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "seed:users": "tsx src/scripts/seedUsers.ts",
+    "seed:statuses": "tsx src/scripts/seedStatuses.ts",
+    "seed:all": "npm run seed:statuses && npm run seed:users",
+    "find-duplicates": "tsx src/scripts/findDuplicates.ts",
+    "create-indexes": "tsx src/scripts/createIndexes.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "lead-management",
+    "api",
+    "mongodb",
+    "express",
+    "typescript"
+  ],
+  "author": "Lead Manager Team",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
+    "razorpay": "^2.9.6",
+    "socket.io": "^4.8.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.3.0",
+    "@types/xlsx": "^0.0.35",
+    "nodemon": "^3.1.11",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
