@@ -89,7 +89,7 @@ export interface ILeadNote {
   createdAt: Date;
 }
 
-export type LeadSource = 'Website' | 'Social Media' | 'Referral' | 'Import' | 'Manual' | 'Cold Call' | 'Email Campaign' | 'strategy_call_modal';
+export type LeadSource = 'Website' | 'Social Media' | 'Referral' | 'Import' | 'Manual' | 'Cold Call' | 'Email Campaign' | 'strategy_call_modal' | 'Meta';
 
 // LeadStatus is now dynamic - can be any string
 export type LeadStatus = string;
@@ -256,6 +256,61 @@ export interface FieldMapping {
 export interface NoteMapping {
   excelColumns: string[];
   isRequired: boolean;
+}
+
+export interface MetaWebhookChangeValue {
+  ad_id?: string;
+  form_id?: string;
+  leadgen_id?: string;
+  page_id?: string;
+  created_time?: number;
+}
+
+export interface MetaWebhookChange {
+  field?: string;
+  value?: MetaWebhookChangeValue;
+}
+
+export interface MetaWebhookEntry {
+  id?: string;
+  time?: number;
+  changes?: MetaWebhookChange[];
+}
+
+export interface MetaWebhookPayload {
+  object?: string;
+  entry?: MetaWebhookEntry[];
+}
+
+export interface MetaLeadFieldData {
+  name: string;
+  values: string[];
+}
+
+export interface MetaLeadDetailResponse {
+  id: string;
+  created_time?: string;
+  ad_id?: string;
+  form_id?: string;
+  field_data?: MetaLeadFieldData[];
+  campaign_name?: string;
+  adset_name?: string;
+  ad_name?: string;
+}
+
+export interface NormalizedMetaLeadData {
+  metaLeadId: string;
+  name: string;
+  email: string;
+  phone: string;
+  formId?: string;
+  pageId?: string;
+  adId?: string;
+  campaignName?: string;
+  adsetName?: string;
+  adName?: string;
+  createdTime?: string;
+  rawFieldData: MetaLeadFieldData[];
 }
 
 export interface SheetPreviewData {

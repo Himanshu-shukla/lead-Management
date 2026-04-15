@@ -16,7 +16,7 @@ import type {
 } from '../types';
 
 // Valid enum values
-const validSources: LeadSource[] = ['Website', 'Social Media', 'Referral', 'Import', 'Manual', 'Cold Call', 'Email Campaign', 'strategy_call_modal'];
+const validSources: LeadSource[] = ['Website', 'Social Media', 'Referral', 'Import', 'Manual', 'Cold Call', 'Email Campaign', 'strategy_call_modal', 'Meta'];
 const validPriorities: LeadPriority[] = ['High', 'Medium', 'Low'];
 
 // Utility function to convert scientific notation to regular numbers

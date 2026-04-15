@@ -63,7 +63,7 @@ const leadSchema = new Schema<ILead>({
   },
   source: {
     type: String,
-    enum: ['Website', 'Social Media', 'Referral', 'Import', 'Manual', 'Cold Call', 'Email Campaign', 'strategy_call_modal'] as LeadSource[],
+    enum: ['Website', 'Social Media', 'Referral', 'Import', 'Manual', 'Cold Call', 'Email Campaign', 'strategy_call_modal', 'Meta'] as LeadSource[],
     required: [true, 'Source is required'],
     default: 'Manual'
   },
@@ -162,6 +162,15 @@ const leadSchema = new Schema<ILead>({
 
 leadSchema.index({ email: 1 }, { unique: true });
 leadSchema.index({ phone: 1 }, { unique: true });
+leadSchema.index(
+  { metaLeadId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      metaLeadId: { $type: 'string', $ne: '' }
+    }
+  }
+);
 leadSchema.index({ status: 1 });
 leadSchema.index({ source: 1 });
 leadSchema.index({ priority: 1 });

@@ -24,6 +24,7 @@
   "author": "Lead Manager Team",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
