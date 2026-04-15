@@ -479,6 +479,7 @@ export const getLeadsService = async (
     Lead.find(filter)
       .populate('assignedToUser', 'name email')
       .populate('assignedByUser', 'name email')
+      .populate('courseAutomationConfig')
       .populate('assignmentHistory.assignedTo', 'name email')
       .populate('assignmentHistory.assignedBy', 'name email')
       .populate('notes.createdBy', 'name email')
@@ -690,6 +691,7 @@ export const getMyLeadsService = async (req: Request) => {
   const [leads, total] = await Promise.all([
     Lead.find(filter)
       .populate('assignedByUser', 'name email')
+      .populate('courseAutomationConfig')
       .populate('notes.createdBy', 'name email')
       .populate('assignmentHistory.assignedTo', 'name email')   //  NEW
       .populate('assignmentHistory.assignedBy', 'name email')   //  NEW
@@ -764,6 +766,7 @@ export const searchLeadsService = async (
     Lead.find(filter)
       .populate('assignedToUser', 'name email')
       .populate('assignedByUser', 'name email')
+      .populate('courseAutomationConfig')
       .sort({ createdAt: -1 })
       .limit(20)
       .lean(),
@@ -786,4 +789,3 @@ export const searchLeadsService = async (
 
   return { leads, total };
 };
-

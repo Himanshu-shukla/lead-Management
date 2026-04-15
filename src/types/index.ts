@@ -56,6 +56,10 @@ export interface ILead extends Document {
   adsetName?: string;     // Added
   adName?: string;        // Added
   metaLeadId?: string;
+  courseSlug?: string;
+  metaFormAnswers?: ILeadFormAnswer[];
+  personalizationSummary?: string;
+  whatsappEngagement?: ILeadWhatsAppEngagement;
   assignedTo?: mongoose.Types.ObjectId;
   assignedBy?: mongoose.Types.ObjectId;
 
@@ -89,6 +93,29 @@ export interface ILeadNote {
   createdAt: Date;
 }
 
+export interface ILeadFormAnswer {
+  question: string;
+  answer: string;
+}
+
+export interface ILeadWhatsAppEngagement {
+  warmIntroSentAt?: Date;
+  warmIntroStatus?: 'pending' | 'sent' | 'failed' | 'skipped';
+  warmIntroError?: string;
+  currentQuestionId?: string;
+  conversationCompletedAt?: Date;
+  answers?: ILeadWhatsAppAnswer[];
+}
+
+export interface ILeadWhatsAppAnswer {
+  questionId: string;
+  question: string;
+  answerKey: string;
+  answerLabel: string;
+  source: 'interactive' | 'text';
+  answeredAt: Date;
+}
+
 export type LeadSource = 'Website' | 'Social Media' | 'Referral' | 'Import' | 'Manual' | 'Cold Call' | 'Email Campaign' | 'strategy_call_modal' | 'Meta';
 
 // LeadStatus is now dynamic - can be any string
@@ -103,7 +130,7 @@ export interface CreateLeadInput {
   position?: string;
   folder?: string;
   source: LeadSource;
-
+  courseSlug?: string;
   priority: LeadPriority;
   notes?: string;
   campaignName?: string;
@@ -121,6 +148,7 @@ export interface UpdateLeadInput {
   source?: LeadSource;
   status?: LeadStatus;
   priority?: LeadPriority;
+  courseSlug?: string;
 }
 
 export interface AssignLeadInput {
@@ -303,6 +331,7 @@ export interface NormalizedMetaLeadData {
   name: string;
   email: string;
   phone: string;
+  courseSlug?: string;
   formId?: string;
   pageId?: string;
   adId?: string;
@@ -311,6 +340,75 @@ export interface NormalizedMetaLeadData {
   adName?: string;
   createdTime?: string;
   rawFieldData: MetaLeadFieldData[];
+  metaFormAnswers: ILeadFormAnswer[];
+  personalizationSummary?: string;
+}
+
+export interface ICourseQuestionOption {
+  key: string;
+  label: string;
+}
+
+export interface ICourseQuestion {
+  id: string;
+  text: string;
+  options: ICourseQuestionOption[];
+  allowsTextReply?: boolean;
+}
+
+export interface ICourseAutomationConfig extends Document {
+  courseSlug: string;
+  courseTitle: string;
+  curriculumUrl: string;
+  aliases: string[];
+  metaCampaignNames: string[];
+  metaAdsetNames: string[];
+  metaAdNames: string[];
+  whatsappQuestions: ICourseQuestion[];
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WhatsAppInteractiveButtonReply {
+  id?: string;
+  title?: string;
+  payload?: string;
+  text?: string;
+}
+
+export interface WhatsAppWebhookMessage {
+  from?: string;
+  text?: {
+    body?: string;
+  };
+  interactive?: {
+    button_reply?: WhatsAppInteractiveButtonReply;
+  };
+  button?: WhatsAppInteractiveButtonReply;
+}
+
+export interface WhatsAppWebhookPayload {
+  messages?: WhatsAppWebhookMessage[];
+  contacts?: Array<{
+    wa_id?: string;
+    profile?: {
+      name?: string;
+    };
+  }>;
+  entry?: Array<{
+    changes?: Array<{
+      value?: {
+        messages?: WhatsAppWebhookMessage[];
+        contacts?: Array<{
+          wa_id?: string;
+          profile?: {
+            name?: string;
+          };
+        }>;
+      };
+    }>;
+  }>;
 }
 
 export interface SheetPreviewData {

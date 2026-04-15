@@ -2,6 +2,7 @@ import axios from 'axios';
 import mongoose from 'mongoose';
 import Lead from '../models/Lead';
 import User from '../models/User';
+import { buildLeadPersonalizationSummary, extractMetaFormAnswers } from './whatsapp.service';
 import type {
   ILead,
   MetaLeadDetailResponse,
@@ -69,6 +70,7 @@ const normalizeMetaLeadData = (
     email,
     phone,
     rawFieldData: fieldData,
+    metaFormAnswers: extractMetaFormAnswers(fieldData),
   };
 
   const formId = leadDetails.form_id || fallback.formId;
@@ -99,6 +101,8 @@ const normalizeMetaLeadData = (
   if (leadDetails.created_time) {
     normalizedLead.createdTime = leadDetails.created_time;
   }
+
+  normalizedLead.personalizationSummary = buildLeadPersonalizationSummary(normalizedLead.metaFormAnswers);
 
   return normalizedLead;
 };
@@ -163,6 +167,11 @@ const createMetaLead = async (
     adsetName: leadData.adsetName || '',
     adName: leadData.adName || '',
     metaLeadId: leadData.metaLeadId,
+    metaFormAnswers: leadData.metaFormAnswers,
+    personalizationSummary: leadData.personalizationSummary || '',
+    whatsappEngagement: {
+      warmIntroStatus: 'pending',
+    },
     assignedBy: systemUserId || undefined,
   });
 
@@ -192,6 +201,8 @@ const updateLeadFromMeta = async (
   lead.campaignName = leadData.campaignName || lead.campaignName || '';
   lead.adsetName = leadData.adsetName || lead.adsetName || '';
   lead.adName = leadData.adName || lead.adName || '';
+  lead.metaFormAnswers = leadData.metaFormAnswers;
+  lead.personalizationSummary = leadData.personalizationSummary || lead.personalizationSummary || '';
 
   if (!lead.name && leadData.name) {
     lead.name = leadData.name;
@@ -201,6 +212,16 @@ const updateLeadFromMeta = async (
   }
   if (!lead.phone && leadData.phone) {
     lead.phone = leadData.phone;
+  }
+
+  if (!lead.whatsappEngagement) {
+    lead.whatsappEngagement = {
+      warmIntroStatus: 'pending',
+      warmIntroError: '',
+    };
+  } else if (lead.whatsappEngagement.warmIntroStatus !== 'sent') {
+    lead.whatsappEngagement.warmIntroStatus = 'pending';
+    lead.whatsappEngagement.warmIntroError = '';
   }
 
   if (systemUserId) {

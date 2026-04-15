@@ -10,7 +10,7 @@ import { Server as SocketIOServer } from 'socket.io';
 
 import { connectDatabase } from './utils/database';
 import routes from './routes';
-import { 
+import {
   errorHandler, 
   notFoundHandler, 
   createRateLimiter, 
@@ -20,6 +20,7 @@ import {
   healthCheck
 } from './middleware';
 import User from './models/User';
+import { syncCourseAutomationConfigsFromWebsiteCourses } from './service/courseAutomationConfig.service';
 
 // Load environment variables
 dotenv.config();
@@ -154,6 +155,15 @@ const ensureSystemUser = async (): Promise<void> => {
   }
 };
 
+const ensureDefaultCourse = async (): Promise<void> => {
+  try {
+    const result = await syncCourseAutomationConfigsFromWebsiteCourses();
+    console.log(`✅ Course automation config sync completed. Created ${result.created} config(s).`);
+  } catch (error) {
+    console.error('❌ Failed to ensure default course automation config exists:', error);
+  }
+};
+
 
 // const gracefulShutdown = (signal: string) => {
 //   console.log(`📴 Received ${signal}, shutting down gracefully`);
@@ -194,6 +204,7 @@ const startServer = async () => {
   try {
     await connectDatabase();
     await ensureSystemUser();
+    await ensureDefaultCourse();
 
     server = httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);

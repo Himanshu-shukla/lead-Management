@@ -111,6 +111,7 @@ export const getLeadById = async (req: Request, res: Response): Promise<void> =>
     const lead = await Lead.findById(id)
       .populate('assignedToUser', 'name email')
       .populate('assignedByUser', 'name email')
+      .populate('courseAutomationConfig')
       .populate('notes.createdBy', 'name email');
 
     if (!lead) {
@@ -203,6 +204,7 @@ export const createLead = async (req: Request, res: Response): Promise<void> => 
     // Create lead
     const lead = new Lead({
       ...leadFields,
+      courseSlug: leadData.courseSlug || undefined,
       assignedBy: req.user?.userId
     });
 
@@ -319,7 +321,7 @@ export const updateLead = async (req: Request, res: Response): Promise<void> => 
     }
 
     // Update allowed fields
-    const allowedFields = ['name', 'email', 'phone', 'position', 'folder', 'source', 'status', 'priority'];
+    const allowedFields = ['name', 'email', 'phone', 'position', 'folder', 'source', 'status', 'priority', 'courseSlug'];
     allowedFields.forEach(field => {
       if (updateData[field as keyof UpdateLeadInput] !== undefined) {
         (lead as any)[field] = updateData[field as keyof UpdateLeadInput];

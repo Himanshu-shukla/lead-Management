@@ -91,6 +91,98 @@ const leadSchema = new Schema<ILead>({
     required: false,
     default: ''
   },
+  courseSlug: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    required: false,
+    default: '',
+  },
+  metaFormAnswers: {
+    type: [
+      {
+        question: {
+          type: String,
+          trim: true,
+          required: true,
+        },
+        answer: {
+          type: String,
+          trim: true,
+          required: true,
+        },
+      },
+    ],
+    default: [],
+  },
+  personalizationSummary: {
+    type: String,
+    trim: true,
+    default: '',
+    maxlength: [500, 'Personalization summary cannot exceed 500 characters'],
+  },
+  whatsappEngagement: {
+    warmIntroSentAt: {
+      type: Date,
+      required: false,
+    },
+    warmIntroStatus: {
+      type: String,
+      enum: ['pending', 'sent', 'failed', 'skipped'],
+      default: 'pending',
+    },
+    warmIntroError: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: [500, 'WhatsApp error cannot exceed 500 characters'],
+    },
+    currentQuestionId: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    conversationCompletedAt: {
+      type: Date,
+      required: false,
+    },
+    answers: {
+      type: [
+        {
+          questionId: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          question: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          answerKey: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          answerLabel: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          source: {
+            type: String,
+            enum: ['interactive', 'text'],
+            default: 'interactive',
+          },
+          answeredAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
+  },
     status: {
       type: String,
       default: 'New',
@@ -210,6 +302,13 @@ leadSchema.virtual('assignedByUser', {
   ref: 'User',
   localField: 'assignedBy',
   foreignField: '_id',
+  justOne: true
+});
+
+leadSchema.virtual('courseAutomationConfig', {
+  ref: 'CourseAutomationConfig',
+  localField: 'courseSlug',
+  foreignField: 'courseSlug',
   justOne: true
 });
 
@@ -390,6 +489,9 @@ leadSchema.methods.addNote = function (content: string, createdBy: mongoose.Type
 
 // Pre-save middleware to update lead score based on status
 leadSchema.pre<ILead>('save', function (next) {
+  (this as any).$locals = (this as any).$locals || {};
+  (this as any).$locals.wasNew = this.isNew;
+
   if (this.isModified('status')) {
     const scoreMap: Record<LeadStatus, number> = {
       'New': 20,
@@ -408,6 +510,19 @@ leadSchema.pre<ILead>('save', function (next) {
     this.leadScore = scoreMap[this.status] || 50;
   }
   next();
+});
+
+leadSchema.post('save', async function (doc) {
+  if (!(this as any).$locals?.wasNew) {
+    return;
+  }
+
+  try {
+    const { triggerLeadWarmFlow } = await import('../service/leadAutomation.service');
+    await triggerLeadWarmFlow(String(doc._id));
+  } catch (error) {
+    console.error('Lead warm flow trigger failed:', error);
+  }
 });
 
 // Create indexes for better performance and uniqueness

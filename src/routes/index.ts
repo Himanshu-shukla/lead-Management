@@ -6,15 +6,19 @@ import dashboardRoutes from './dashboard';
 import statusRoutes from './status';
 import remindersRouter from './reminders.route';
 import metaLeadRoutes from './metaLeads';
+import whatsappRoutes from './whatsapp';
+import courseAutomationConfigRoutes from './courseAutomationConfigs';
 const router = Router();
 // Mount routes
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/leads', leadRoutes);
 router.use('/meta-leads', metaLeadRoutes);
+router.use('/whatsapp', whatsappRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/statuses', statusRoutes);
 router.use('/reminders', remindersRouter);
+router.use('/course-automation-configs', courseAutomationConfigRoutes);
 // Health check for API
 router.get('/health', (_req, res) => {
   res.json({
