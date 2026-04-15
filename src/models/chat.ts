@@ -25,4 +25,4 @@ const ChatSchema: Schema = new Schema({
 });
 
 // Using your primary connection to register the model
-export const Chat = mongoose.model<IChat>('Chat', ChatSchema);
+export const Chat = mongoose.model<IChat>('leadchats', ChatSchema);

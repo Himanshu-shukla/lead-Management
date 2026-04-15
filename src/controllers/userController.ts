@@ -167,10 +167,11 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 
 export const updateUser = async (req: Request, res: Response): Promise<void> => {
   try {
-
-    console.log("this is we are using for numebr ")
+    console.log("Updating user details...");
     const { id } = req.params;
-    const { name, role, isActive, phone } = req.body;
+    
+    // 1. Destructure canWorkFromHome from the body
+    const { name, role, isActive, phone, canWorkFromHome } = req.body;
 
     const user = await User.findById(id);
     if (!user) {
@@ -202,35 +203,33 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       }
     }
 
-    // --- 2. FIELD UPDATES WITH PROPER VALIDATION ---
+    // --- 2. FIELD UPDATES ---
 
     // Name Update
-  if (name !== undefined) {
-    // Check if it's a string and has content after trimming
-    if (typeof name !== 'string' || name.trim().length < 2) {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid name',
-        errors: ['Name must be a string at least 2 characters long']
-      });
-      return;
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length < 2) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid name',
+          errors: ['Name must be a string at least 2 characters long']
+        });
+        return;
+      }
+      user.name = name.trim();
     }
-    user.name = name.trim();
-  }
 
-  // Phone Update
-  if (phone !== undefined) {
-    // Check if it's a string and has content
-    if (typeof phone !== 'string' || phone.trim().length < 9) {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid number',
-        errors: ['Number must be at least 9 characters long']
-      });
-      return;
+    // Phone Update
+    if (phone !== undefined) {
+      if (typeof phone !== 'string' || phone.trim().length < 9) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid number',
+          errors: ['Number must be at least 9 characters long']
+        });
+        return;
+      }
+      user.phone = phone.trim();
     }
-    user.phone = phone.trim();
-  }
 
     // Role Update
     if (role !== undefined) {
@@ -250,7 +249,12 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       user.isActive = Boolean(isActive);
     }
 
-    // --- 3. SAVE & RESPONSE ---
+    //  3. Work From Home Update
+    if (canWorkFromHome !== undefined) {
+      user.canWorkFromHome = Boolean(canWorkFromHome);
+    }
+
+    // --- 4. SAVE & RESPONSE ---
     await user.save();
 
     res.status(200).json({

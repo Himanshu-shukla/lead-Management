@@ -44,6 +44,10 @@ const userSchema = new Schema<IUser>({
     type: String,
     required: false
   },
+  canWorkFromHome: { 
+    type: Boolean, 
+    default: false // By default, everyone must be at the office
+  }
   
 }, {
   timestamps: true,

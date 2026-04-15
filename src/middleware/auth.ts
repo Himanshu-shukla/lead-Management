@@ -171,3 +171,56 @@ export const verifyToken = (token: string): JwtPayload | null => {
     return null;
   }
 };
+
+import { Attendance } from '../models/attendance.model';
+
+/**
+ * Middleware to verify user has an active clock-in session for today.
+ * Must be placed AFTER authenticateToken in your routes.
+ */
+export const requireClockIn = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    // 1. Verify user is authenticated from previous middleware
+    if (!req.user) {
+      res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required' 
+      });
+      return;
+    }
+
+    const userId = req.user.userId;
+    
+    // 2. Generate today's date string (YYYY-MM-DD) to match the Model
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 3. Search for an active session:
+    // - Matches this user
+    // - Matches today's date string
+    // - checkOut is explicitly NULL (meaning they haven't clocked out)
+    const activeSession = await Attendance.findOne({
+      user: userId,
+      date: todayStr,
+      checkOut: null 
+    });
+
+    // 4. If no active session found, block access
+    if (!activeSession) {
+      res.status(403).json({
+        success: false,
+        message: 'Access Restricted: You must be clocked in to access CRM data.',
+        isClockedOut: true // Frontend uses this flag to show the Red Overlay
+      });
+      return;
+    }
+
+    // 5. User is clocked in; proceed to the next function
+    next();
+  } catch (error) {
+    console.error('requireClockIn Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during attendance verification'
+    });
+  }
+};

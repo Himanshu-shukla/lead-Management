@@ -6,7 +6,7 @@ https://api.leads.edtechinformative.uk/api
 ```
 
 ## Authentication
-Most API endpoints require a JWT token in the Authorization header. Public exceptions include `/api/auth/login`, `/health`, `/api/health`, and Meta webhook verification/delivery at `/api/meta-leads`.
+All API endpoints except login require a JWT token in the Authorization header:
 ```
 Authorization: Bearer <jwt_token>
 ```
@@ -27,53 +27,6 @@ All API responses follow this standard format:
   }
 }
 ```
-
----
-
-## 🔗 Meta Lead Ads Webhook
-
-### GET /api/meta-leads
-**Description**: Verify Meta webhook subscription  
-**Access**: Public  
-**Query Parameters**:
-- `hub.mode`
-- `hub.verify_token`
-- `hub.challenge`
-
-**Success Response**:
-```text
-<hub.challenge>
-```
-
-### POST /api/meta-leads
-**Description**: Receive Meta `leadgen` webhook events and create or update CRM leads instantly  
-**Access**: Public  
-**Request Body**: Meta webhook JSON payload
-
-**Success Response**:
-```json
-{
-  "success": true,
-  "message": "Meta webhook accepted",
-  "data": {
-    "created": 1,
-    "updated": 0,
-    "duplicate": 0,
-    "ignored": 0,
-    "processingErrors": []
-  }
-}
-```
-
-### Meta Setup Checklist
-1. Create a Meta app in Facebook Developers.
-2. Add the `Webhooks` product.
-3. Subscribe to the `leadgen` field.
-4. Set callback URL to `https://<your-domain>/api/meta-leads`.
-5. Set the verify token to match `META_WEBHOOK_VERIFY_TOKEN`.
-6. Provide a valid page access token in `META_PAGE_ACCESS_TOKEN`.
-7. Subscribe the Facebook Page to the webhook.
-8. Test the integration with the Meta Lead Ads Testing Tool.
 
 ---
 

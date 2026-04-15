@@ -63,7 +63,7 @@ const leadSchema = new Schema<ILead>({
   },
   source: {
     type: String,
-    enum: ['Website', 'Social Media', 'Referral', 'Import', 'Manual', 'Cold Call', 'Email Campaign', 'strategy_call_modal', 'Meta'] as LeadSource[],
+    enum: ['Website', 'Social Media', 'Referral', 'Import', 'Manual', 'Cold Call', 'Email Campaign','strategy_call_modal'] as LeadSource[],
     required: [true, 'Source is required'],
     default: 'Manual'
   },
@@ -90,98 +90,6 @@ const leadSchema = new Schema<ILead>({
     trim: true,
     required: false,
     default: ''
-  },
-  courseSlug: {
-    type: String,
-    trim: true,
-    lowercase: true,
-    required: false,
-    default: '',
-  },
-  metaFormAnswers: {
-    type: [
-      {
-        question: {
-          type: String,
-          trim: true,
-          required: true,
-        },
-        answer: {
-          type: String,
-          trim: true,
-          required: true,
-        },
-      },
-    ],
-    default: [],
-  },
-  personalizationSummary: {
-    type: String,
-    trim: true,
-    default: '',
-    maxlength: [500, 'Personalization summary cannot exceed 500 characters'],
-  },
-  whatsappEngagement: {
-    warmIntroSentAt: {
-      type: Date,
-      required: false,
-    },
-    warmIntroStatus: {
-      type: String,
-      enum: ['pending', 'sent', 'failed', 'skipped'],
-      default: 'pending',
-    },
-    warmIntroError: {
-      type: String,
-      trim: true,
-      default: '',
-      maxlength: [500, 'WhatsApp error cannot exceed 500 characters'],
-    },
-    currentQuestionId: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    conversationCompletedAt: {
-      type: Date,
-      required: false,
-    },
-    answers: {
-      type: [
-        {
-          questionId: {
-            type: String,
-            required: true,
-            trim: true,
-          },
-          question: {
-            type: String,
-            required: true,
-            trim: true,
-          },
-          answerKey: {
-            type: String,
-            required: true,
-            trim: true,
-          },
-          answerLabel: {
-            type: String,
-            required: true,
-            trim: true,
-          },
-          source: {
-            type: String,
-            enum: ['interactive', 'text'],
-            default: 'interactive',
-          },
-          answeredAt: {
-            type: Date,
-            default: Date.now,
-          },
-        },
-      ],
-      default: [],
-    },
   },
     status: {
       type: String,
@@ -254,15 +162,6 @@ const leadSchema = new Schema<ILead>({
 
 leadSchema.index({ email: 1 }, { unique: true });
 leadSchema.index({ phone: 1 }, { unique: true });
-leadSchema.index(
-  { metaLeadId: 1 },
-  {
-    unique: true,
-    partialFilterExpression: {
-      metaLeadId: { $type: 'string', $ne: '' }
-    }
-  }
-);
 leadSchema.index({ status: 1 });
 leadSchema.index({ source: 1 });
 leadSchema.index({ priority: 1 });
@@ -302,13 +201,6 @@ leadSchema.virtual('assignedByUser', {
   ref: 'User',
   localField: 'assignedBy',
   foreignField: '_id',
-  justOne: true
-});
-
-leadSchema.virtual('courseAutomationConfig', {
-  ref: 'CourseAutomationConfig',
-  localField: 'courseSlug',
-  foreignField: 'courseSlug',
   justOne: true
 });
 
@@ -477,21 +369,21 @@ leadSchema.statics.getTopPerformers = async function () {
 };
 
 // Instance method to add note
+// Replace your existing addNote method with this:
 leadSchema.methods.addNote = function (content: string, createdBy: mongoose.Types.ObjectId) {
   this.notes.push({
     id: new mongoose.Types.ObjectId().toString(),
-    content,
-    createdBy,
+    content: content.trim(),
+    createdBy: createdBy,
     createdAt: new Date()
   } as ILeadNote);
-  return this.save();
+
+  // Use validateModifiedOnly: true to skip validation on old/broken notes
+  return this.save({ validateModifiedOnly: true });
 };
 
 // Pre-save middleware to update lead score based on status
 leadSchema.pre<ILead>('save', function (next) {
-  (this as any).$locals = (this as any).$locals || {};
-  (this as any).$locals.wasNew = this.isNew;
-
   if (this.isModified('status')) {
     const scoreMap: Record<LeadStatus, number> = {
       'New': 20,
@@ -510,19 +402,6 @@ leadSchema.pre<ILead>('save', function (next) {
     this.leadScore = scoreMap[this.status] || 50;
   }
   next();
-});
-
-leadSchema.post('save', async function (doc) {
-  if (!(this as any).$locals?.wasNew) {
-    return;
-  }
-
-  try {
-    const { triggerLeadWarmFlow } = await import('../service/leadAutomation.service');
-    await triggerLeadWarmFlow(String(doc._id));
-  } catch (error) {
-    console.error('Lead warm flow trigger failed:', error);
-  }
 });
 
 // Create indexes for better performance and uniqueness

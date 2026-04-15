@@ -338,11 +338,7 @@ export const getLeadsService = async (
     priority,
     assignedTo,
     folder,
-
-    //SEARCH (ADDED)
     search,
-
-    // NEW (optional)
     date,
     fromDate,
     toDate
@@ -354,12 +350,12 @@ export const getLeadsService = async (
 
   const filter: any = {};
 
-  // ---------------- ROLE BASED ACCESS (UNCHANGED) ----------------
+  // ---------------- ROLE BASED ACCESS ----------------
   if (req.user?.role !== 'admin') {
     filter.assignedTo = req.user?.userId;
   }
 
-  // ---------------- EXISTING FILTERS (UNCHANGED) ----------------
+  // ---------------- EXISTING FILTERS ----------------
   if (status) {
     const statusArray = Array.isArray(status) ? status : [status];
     filter.status = { $in: statusArray };
@@ -376,18 +372,9 @@ export const getLeadsService = async (
   }
 
   if (assignedTo && req.user?.role === 'admin') {
-    const assignedToArray = Array.isArray(assignedTo)
-      ? assignedTo
-      : [assignedTo];
-
-    const hasUnassigned =
-      assignedToArray.includes(null as any) ||
-      assignedToArray.includes('null') ||
-      assignedToArray.includes('unassigned');
-
-    const otherAssignees = assignedToArray.filter(
-      (id) => id !== null && id !== 'null' && id !== 'unassigned'
-    );
+    const assignedToArray = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+    const hasUnassigned = assignedToArray.some(id => [null, 'null', 'unassigned'].includes(id as any));
+    const otherAssignees = assignedToArray.filter(id => ![null, 'null', 'unassigned'].includes(id as any));
 
     if (hasUnassigned && otherAssignees.length === 0) {
       filter.assignedTo = { $in: [null, undefined] };
@@ -401,89 +388,85 @@ export const getLeadsService = async (
     }
   }
 
+  // ---------------- 📂 FOLDER FILTER (UPDATED) ----------------
   if (folder) {
     const folderArray = Array.isArray(folder) ? folder : [folder];
 
-    const hasEmpty =
-      folderArray.includes('') ||
-      folderArray.includes('null') ||
-      folderArray.includes('undefined') ||
-      folderArray.includes('Uncategorized');
+    // Check if 'Uncategorized' is requested
+    const isUncategorizedSelected = folderArray.includes('Uncategorized');
 
-    const otherFolders = folderArray.filter(
-      (f) =>
-        f !== '' &&
-        f !== 'null' &&
-        f !== 'undefined' &&
-        f !== 'Uncategorized'
-    );
+    // ONLY add folder filters if 'Uncategorized' is NOT the selection.
+    // If it is 'Uncategorized', we ignore this block entirely so the query returns ALL folders.
+    if (!isUncategorizedSelected) {
+      const hasEmpty = folderArray.some(f => ['', 'null', 'undefined'].includes(String(f)));
+      const otherFolders = folderArray.filter(f => !['', 'null', 'undefined'].includes(String(f)));
 
-    if (hasEmpty && otherFolders.length === 0) {
-      filter.$or = [
-        { folder: '' },
-        { folder: { $exists: false } },
-        { folder: null }
-      ];
-    } else if (hasEmpty && otherFolders.length > 0) {
-      filter.$or = [
-        { folder: '' },
-        { folder: { $exists: false } },
-        { folder: null },
-        { folder: { $in: otherFolders } }
-      ];
-    } else {
-      filter.folder = { $in: folderArray };
+      if (hasEmpty && otherFolders.length === 0) {
+        filter.$or = [{ folder: '' }, { folder: { $exists: false } }, { folder: null }];
+      } else if (hasEmpty && otherFolders.length > 0) {
+        filter.$or = [
+          { folder: '' },
+          { folder: { $exists: false } },
+          { folder: null },
+          { folder: { $in: otherFolders } }
+        ];
+      } else {
+        filter.folder = { $in: folderArray };
+      }
     }
   }
 
-  // ---------------- 🔍 SEARCH (ONLY ADDITION) ----------------
+  // ---------------- 🔍 SEARCH ----------------
   if (search && typeof search === 'string') {
     const searchText = search.trim();
-
-    filter.$or = [
+    const searchConditions = [
       { name: { $regex: searchText, $options: 'i' } },
       { email: { $regex: searchText, $options: 'i' } },
-      {
-        $expr: {
-          $eq: [{ $toString: '$phone' }, searchText]
-        }
-      }
+      { $expr: { $eq: [{ $toString: '$phone' }, searchText] } }
     ];
+
+    // If folder logic already created an $or, we must combine them safely
+    if (filter.$or) {
+      filter.$and = [
+        { $or: filter.$or },
+        { $or: searchConditions }
+      ];
+      delete filter.$or;
+    } else {
+      filter.$or = searchConditions;
+    }
   }
 
-  // ---------------- DATE FILTER (UNCHANGED) ----------------
+  // ---------------- 📅 DATE FILTER (FIXED FOR ACCURACY) ----------------
   if (date) {
     const start = new Date(date as string);
-    start.setHours(0, 0, 0, 0);
-
+    start.setUTCHours(0, 0, 0, 0);
     const end = new Date(date as string);
-    end.setHours(23, 59, 59, 999);
-
+    end.setUTCHours(23, 59, 59, 999);
     filter.createdAt = { $gte: start, $lte: end };
   } else if (fromDate || toDate) {
     filter.createdAt = {};
-
     if (fromDate) {
-      filter.createdAt.$gte = new Date(fromDate as string);
+      const start = new Date(fromDate as string);
+      start.setUTCHours(0, 0, 0, 0);
+      filter.createdAt.$gte = start;
     }
-
     if (toDate) {
       const end = new Date(toDate as string);
-      end.setHours(23, 59, 59, 999);
+      end.setUTCHours(23, 59, 59, 999);
       filter.createdAt.$lte = end;
     }
   }
 
-  // ---------------- QUERY (UNCHANGED) ----------------
+  // ---------------- QUERY ----------------
   const [rawLeads, total] = await Promise.all([
     Lead.find(filter)
       .populate('assignedToUser', 'name email')
       .populate('assignedByUser', 'name email')
-      .populate('courseAutomationConfig')
       .populate('assignmentHistory.assignedTo', 'name email')
       .populate('assignmentHistory.assignedBy', 'name email')
       .populate('notes.createdBy', 'name email')
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1 }) // Newest leads first
       .skip(skip)
       .limit(limitNum)
       .lean(),
@@ -492,15 +475,11 @@ export const getLeadsService = async (
 
   const leads = rawLeads.map((lead: any) => {
     const historyCount = lead.assignmentHistory?.length || 0;
-
     return {
       ...lead,
       assignmentCount: historyCount,
       wasAssignedInPast: historyCount > 1,
-      lastAssignedAt:
-        historyCount > 0
-          ? lead.assignmentHistory[historyCount - 1].assignedAt
-          : null
+      lastAssignedAt: historyCount > 0 ? lead.assignmentHistory[historyCount - 1].assignedAt : null
     };
   });
 
@@ -509,8 +488,8 @@ export const getLeadsService = async (
 
 
 
-
 import { FilterQuery } from 'mongoose';
+import { Chat } from '../models/chat';
 
 interface GetDuplicateLeadsResult {
   leads: any[];
@@ -543,7 +522,7 @@ export const getDuplicateLeadsService = async (
     ];
   }
 
-  // 📅 date range (kept as-is)
+  // date range (kept as-is)
   if (dateRange) {
     const range =
       typeof dateRange === 'string'
@@ -691,7 +670,6 @@ export const getMyLeadsService = async (req: Request) => {
   const [leads, total] = await Promise.all([
     Lead.find(filter)
       .populate('assignedByUser', 'name email')
-      .populate('courseAutomationConfig')
       .populate('notes.createdBy', 'name email')
       .populate('assignmentHistory.assignedTo', 'name email')   //  NEW
       .populate('assignmentHistory.assignedBy', 'name email')   //  NEW
@@ -766,7 +744,6 @@ export const searchLeadsService = async (
     Lead.find(filter)
       .populate('assignedToUser', 'name email')
       .populate('assignedByUser', 'name email')
-      .populate('courseAutomationConfig')
       .sort({ createdAt: -1 })
       .limit(20)
       .lean(),
@@ -788,4 +765,146 @@ export const searchLeadsService = async (
   });
 
   return { leads, total };
+};
+
+
+export const getAllChatsService = async (req: Request) => {
+  const {
+    page = 1,
+    limit = 50,
+    phone,
+    platform,
+    search
+  } = req.query;
+
+  const pageNum = parseInt(page as string, 10);
+  const limitNum = parseInt(limit as string, 10);
+  const skip = (pageNum - 1) * limitNum;
+
+  // Initialize filter (Admin sees everything, so filter starts empty)
+  const filter: any = {};
+
+  // Filter by specific phone number
+  if (phone) {
+    filter.phone = phone;
+  }
+
+  // Filter by platform (whatsapp, web, etc.)
+  if (platform) {
+    filter['metadata.platform'] = platform;
+  }
+
+  // Search within the message content or username
+  if (search) {
+    const regex = new RegExp(search as string, 'i');
+    filter.$or = [
+      { content: regex },
+      { userName: regex },
+      { phone: regex }
+    ];
+  }
+
+  /* ---------- QUERY ---------- */
+  const [chats, total] = await Promise.all([
+    Chat.find(filter)
+      .sort({ timestamp: -1 }) // Newest messages first
+      .skip(skip)
+      .limit(limitNum)
+      .lean(),
+    Chat.countDocuments(filter)
+  ]);
+
+  return {
+    chats,
+    total,
+    page: pageNum,
+    limit: limitNum
+  };
+};
+
+
+
+import moment from 'moment';
+
+export const getAdminLeadStatsService = async (query: any) => {
+  const { startDate, endDate, period = 'day' } = query;
+
+  // 1. Define Date Range
+  const start = startDate ? new Date(startDate as string) : moment().startOf('month').toDate();
+  const end = endDate ? new Date(endDate as string) : new Date();
+
+  // 2. Base Filter
+  const matchFilter = {
+    createdAt: { $gte: start, $lte: end }
+  };
+
+  // 3. Overall Counts (Today, Week, Month, Year)
+  const [counts] = await Lead.aggregate([
+    {
+      $facet: {
+        today: [
+          { $match: { createdAt: { $gte: moment().startOf('day').toDate() } } },
+          { $count: 'count' }
+        ],
+        thisWeek: [
+          { $match: { createdAt: { $gte: moment().startOf('week').toDate() } } },
+          { $count: 'count' }
+        ],
+        thisMonth: [
+          { $match: { createdAt: { $gte: moment().startOf('month').toDate() } } },
+          { $count: 'count' }
+        ],
+        thisYear: [
+          { $match: { createdAt: { $gte: moment().startOf('year').toDate() } } },
+          { $count: 'count' }
+        ],
+        totalInRange: [
+          { $match: matchFilter },
+          { $count: 'count' }
+        ]
+      }
+    }
+  ]);
+
+  // 4. Time-based Breakdown (The trend logic)
+  let groupingId: any = {};
+  if (period === 'month') {
+    groupingId = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+  } else if (period === 'week') {
+    groupingId = { year: { $year: '$createdAt' }, week: { $week: '$createdAt' } };
+  } else {
+    groupingId = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' } };
+  }
+
+  const trend = await Lead.aggregate([
+    { $match: matchFilter },
+    {
+      $group: {
+        _id: groupingId,
+        count: { $sum: 1 },
+        date: { $first: '$createdAt' }
+      }
+    },
+    { $sort: { 'date': 1 } },
+    {
+      $project: {
+        _id: 0,
+        count: 1,
+        periodLabel: period === 'week' ? { $concat: ["Week ", { $toString: "$_id.week" }] } : "$date",
+        // This gives you the readable range like "1 Jan 2024"
+        formattedDate: { $dateToString: { format: "%d %b %Y", date: "$date" } }
+      }
+    }
+  ]);
+
+  return {
+    summary: {
+      today: counts.today[0]?.count || 0,
+      thisWeek: counts.thisWeek[0]?.count || 0,
+      thisMonth: counts.thisMonth[0]?.count || 0,
+      thisYear: counts.thisYear[0]?.count || 0,
+      totalInRange: counts.totalInRange[0]?.count || 0
+    },
+    trend
+  };
 };

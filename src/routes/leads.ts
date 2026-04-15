@@ -16,6 +16,8 @@ import {
   importLeadsFromGoogleSheet,
   getDuplicateAndUncategorizedCounts,
   searchLeads,
+  getFolderCountsForAdmin,
+  getAdminLeadStats,
 
 } from '../controllers/leadController';
 import { 
@@ -25,12 +27,12 @@ import {
   getLeadFields
 } from '../controllers/excelController';
 import { uploadExcel, handleUploadError, validateFilePresence } from '../middleware/upload';
-import { authenticateToken, requireAuth, requireAdmin } from '../middleware/auth';
+import { authenticateToken, requireAuth, requireAdmin, requireClockIn } from '../middleware/auth';
 
 const router = Router();
 
 // All lead routes require authentication
-router.use(authenticateToken, requireAuth);
+router.use(authenticateToken, requireAuth,requireClockIn);
 
 
 
@@ -38,7 +40,9 @@ router.use(authenticateToken, requireAuth);
 
 /* =============== LEAD FILTER & USER ROUTES =============== */
 // My leads endpoint (for users to see their assigned leads)
-router.get('/my-leads', getMyLeads);
+router.get('/admin-stats',requireAdmin, getAdminLeadStats);
+
+router.get('/my-leads',requireClockIn, getMyLeads);
 
 // My leads stats endpoint
 router.get('/my-leads/stats', getMyLeadsStats);
@@ -47,8 +51,8 @@ router.get('/my-leads/stats', getMyLeadsStats);
 router.get('/folders', getDistinctFolders);
 
 // Get folder counts for better performance
-router.get('/folder-counts', getFolderCounts);
-
+router.get('/folder-counts',requireClockIn, getFolderCounts);
+router.get('/folder-countsALL',requireClockIn,getFolderCountsForAdmin)
 /* =============== BULK / ASSIGNMENT =============== */
 // Lead assignment (admin only)
 router.post('/assign', requireAdmin, assignLeads);
@@ -120,5 +124,4 @@ router.delete('/:id', requireAdmin, deleteLead);
 
 // Summary counters
 router.get('/counts/summary', getDuplicateAndUncategorizedCounts);
-
 export default router;
