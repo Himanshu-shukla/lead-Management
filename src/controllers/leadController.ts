@@ -18,8 +18,6 @@ export const getLeads = async (
   res: Response
 ): Promise<void> => {
   try {
-
-    console.log("we are in foder api")
     const pageNum = parseInt((req.query.page as string) || '1', 10);
     const limitNum = parseInt((req.query.limit as string) || '10', 10);
 

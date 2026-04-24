@@ -458,6 +458,19 @@ export const getLeadsService = async (
     }
   }
 
+  // Temporary debug block for API filter diagnostics.
+  // Enable with DEBUG_LEADS_FILTER=true in backend .env
+  if (process.env.DEBUG_LEADS_FILTER === 'true') {
+    console.log('[LEADS_FILTER_DEBUG] requestContext=', {
+      role: req.user?.role,
+      userId: req.user?.userId,
+      query: req.query,
+      page: pageNum,
+      limit: limitNum
+    });
+    console.log('[LEADS_FILTER_DEBUG] mongoFilter=', JSON.stringify(filter));
+  }
+
   // ---------------- QUERY ----------------
   const [rawLeads, total] = await Promise.all([
     Lead.find(filter)
