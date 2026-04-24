@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import type { ILead, ILeadNote, ILeadModel, LeadSource, LeadStatus, LeadPriority , IUser } from '../types';
+import type { ILead, ILeadNote, ILeadModel, LeadSource, LeadStatus, LeadPriority, IUser } from '../types';
 
 const leadNoteSchema = new Schema<ILeadNote>({
   id: {
@@ -63,7 +63,7 @@ const leadSchema = new Schema<ILead>({
   },
   source: {
     type: String,
-    enum: ['Website', 'Social Media', 'Referral', 'Import', 'Manual', 'Cold Call', 'Email Campaign','strategy_call_modal'] as LeadSource[],
+    enum: ['Website', 'Social Media', 'Referral', 'Import', 'Manual', 'Cold Call', 'Email Campaign', 'strategy_call_modal', 'data_analytics_landing_page'] as LeadSource[],
     required: [true, 'Source is required'],
     default: 'Manual'
   },
@@ -91,64 +91,64 @@ const leadSchema = new Schema<ILead>({
     required: false,
     default: ''
   },
-    status: {
-      type: String,
-      default: 'New',
-      required: true,
-      trim: true,
-      maxlength: [50, 'Status cannot exceed 50 characters']
-    },
-    priority: {
-      type: String,
-      enum: ['High', 'Medium', 'Low'] as LeadPriority[],
-      default: 'Medium',
-      required: true
-    },
-
-    assignedTo: {
-      type: Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    assignedBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User'
-    },
-
-    /* =======================
-       Assignment History
-    ======================= */
-    assignmentHistory: [
-      {
-        assignedTo: {
-          type: Schema.Types.ObjectId,
-          ref: 'User',
-          required: true
-        },
-        assignedBy: {
-          type: Schema.Types.ObjectId,
-          ref: 'User'
-        },
-        assignedAt: {
-          type: Date,
-          default: Date.now
-        },
-        source: {
-          type: String,
-          enum: ['Manual', 'Bulk', 'Import', 'Reimport', 'System'],
-          default: 'Manual'
-        }
-      }
-    ],
-
-    notes: [leadNoteSchema],
-
-    leadScore: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 50
-    }
+  status: {
+    type: String,
+    default: 'New',
+    required: true,
+    trim: true,
+    maxlength: [50, 'Status cannot exceed 50 characters']
   },
+  priority: {
+    type: String,
+    enum: ['High', 'Medium', 'Low'] as LeadPriority[],
+    default: 'Medium',
+    required: true
+  },
+
+  assignedTo: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  assignedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  },
+
+  /* =======================
+     Assignment History
+  ======================= */
+  assignmentHistory: [
+    {
+      assignedTo: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      assignedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      assignedAt: {
+        type: Date,
+        default: Date.now
+      },
+      source: {
+        type: String,
+        enum: ['Manual', 'Bulk', 'Import', 'Reimport', 'System'],
+        default: 'Manual'
+      }
+    }
+  ],
+
+  notes: [leadNoteSchema],
+
+  leadScore: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 50
+  }
+},
   {
     timestamps: true,
     toJSON: { virtuals: true },
